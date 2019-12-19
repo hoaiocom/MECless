@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">MECless</string>
+    <string name="api_url">Enter Server URL...</string>
+    <string name="btn_connect">Connect</string>
+    <string name="txt_connecting">Connecting...</string>
+    <string name="btnSelect">Select Images</string>
+    <string name="numImages">0 image selected</string>
+    <string name="empty_directory">Empty Directory</string>
+    <string name="storage_removed">Storage was removed or unmounted.</string>
+    <string name="choose_file">Select a file</string>
+    <string name="error_selecting_file">Error selecting File</string>
+    <string name="internal_storage">Internal storage</string>
+</resources>
