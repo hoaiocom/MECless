@@ -23,6 +23,8 @@ import android.widget.GridView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.gson.Gson;
+
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -58,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
     static final int PICK_IMAGE_MULTIPLE = 1;
     private ArrayList<Uri> mArrayUri = new ArrayList<Uri>();
     private List<String> imagesEncodedList = new ArrayList<String>();
-    private String BASE_URL = "http://192.168.1.9:31112/function/";
+    private String BASE_URL = "http://10.0.2.2:8080/function/";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,7 +69,7 @@ public class MainActivity extends AppCompatActivity {
         txtUrl = findViewById(R.id.txtUrl);
         gvGallery = findViewById(R.id.gvGallery);
         tvNumImages = findViewById(R.id.tvNumImages);
-        txtUrl.setText("http://192.168.1.9:31112/function/",TextView.BufferType.EDITABLE);
+        txtUrl.setText("http://10.0.2.2:8080/function/",TextView.BufferType.EDITABLE);
     }
 
     // Connect to server
@@ -92,7 +94,7 @@ public class MainActivity extends AppCompatActivity {
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(BASE_URL)
                 .client(client)
-                .addConverterFactory(ScalarsConverterFactory.create())
+                .addConverterFactory(GsonConverterFactory.create())
                 .build();
 
         // Get client and call object
@@ -100,37 +102,23 @@ public class MainActivity extends AppCompatActivity {
 
         // Generate file
         File file = new File(imagesEncodedList.get(0));
+
         RequestBody fileReqBody  = RequestBody.create(MediaType.parse("image/jpeg"), file);
         //RequestBody fileReqBody  = RequestBody.create(MediaType.parse(getContentResolver().getType(uri)), file);
         MultipartBody.Part filePart = MultipartBody.Part.createFormData("image", file.getName(), fileReqBody);
 
-        // Execute the request
-        Call<String> call = uploadAPIs.uploadImage(filePart);
-        call.enqueue(new Callback<String>() {
+        Call<PigoResponse> call = uploadAPIs.uploadImage(filePart);
+        call.enqueue(new Callback<PigoResponse>() {
             @Override
-            public void onResponse(@NonNull Call<String> call, @NonNull Response<String> response) {
-                Toast.makeText(getApplicationContext(),response.body(),Toast.LENGTH_LONG).show();
-                Log.v("REQ",response.body().toString());
+            public void onResponse(@NonNull Call<PigoResponse> call, @NonNull Response<PigoResponse> response) {
+                Toast.makeText(getApplicationContext(),response.body().getStatus(),Toast.LENGTH_LONG).show();
             }
 
             @Override
-            public void onFailure(@NonNull Call<String> call, @NonNull Throwable t) {
+            public void onFailure(@NonNull Call<PigoResponse> call, @NonNull Throwable t) {
                 Toast.makeText(getApplicationContext(),t.toString(),Toast.LENGTH_SHORT).show();
             }
         });
-//        Call<ResponseBody> call = uploadAPIs.uploadImage(filePart);
-//        call.enqueue(new Callback<ResponseBody>() {
-//            @Override
-//            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
-//                Toast.makeText(getApplicationContext(),response.toString(),Toast.LENGTH_LONG).show();
-//                //Log.v("REQ",fileReqBody.toString());
-//            }
-//
-//            @Override
-//            public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
-//                Toast.makeText(getApplicationContext(),t.toString(),Toast.LENGTH_SHORT).show();
-//            }
-//        });
     }
 
 

@@ -13,7 +13,11 @@ import retrofit2.http.Part;
 
 public interface UploadAPIs {
     @Multipart
-    @POST("pigo-of?output=json_image")
-    Call<String> uploadImage(
+    @POST("faas-pigo")
+    Call<PigoResponse> uploadImage(
             @Part MultipartBody.Part file);
+//    @Multipart
+//    @POST("faas-pigo")
+//    Call<PigoResponse> uploadImage(
+//        @Part List<MultipartBody.Part> files);
 }
