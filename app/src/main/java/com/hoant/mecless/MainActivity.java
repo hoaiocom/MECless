@@ -61,6 +61,7 @@ public class MainActivity extends AppCompatActivity {
     private ArrayList<Uri> mArrayUri = new ArrayList<Uri>();
     private List<String> imagesEncodedList = new ArrayList<String>();
     private String BASE_URL = "http://10.0.2.2:8080/function/";
+    private List<MultipartBody.Part> parts = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,7 +83,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public okhttp3.Response intercept(@NotNull Chain chain) throws IOException {
                 Request original = chain.request();
-
                 Request request = original.newBuilder()
                         .header("Content-Type", "multipart/form-data; charset=utf-8; boundary=klab")
                         .method(original.method(), original.body())
@@ -99,19 +99,20 @@ public class MainActivity extends AppCompatActivity {
 
         // Get client and call object
         UploadAPIs uploadAPIs = retrofit.create(UploadAPIs.class);
+        // ---------Prepare files
+//        // Generate file
+//        File file = new File(imagesEncodedList.get(0));
+//
+//        RequestBody fileReqBody  = RequestBody.create(MediaType.parse("image/jpeg"), file);
+//        //RequestBody fileReqBody  = RequestBody.create(MediaType.parse(getContentResolver().getType(uri)), file);
+//        MultipartBody.Part filePart = MultipartBody.Part.createFormData("image", file.getName(), fileReqBody);
 
-        // Generate file
-        File file = new File(imagesEncodedList.get(0));
-
-        RequestBody fileReqBody  = RequestBody.create(MediaType.parse("image/jpeg"), file);
-        //RequestBody fileReqBody  = RequestBody.create(MediaType.parse(getContentResolver().getType(uri)), file);
-        MultipartBody.Part filePart = MultipartBody.Part.createFormData("image", file.getName(), fileReqBody);
-
-        Call<PigoResponse> call = uploadAPIs.uploadImage(filePart);
+        Call<PigoResponse> call = uploadAPIs.uploadImage(parts);
         call.enqueue(new Callback<PigoResponse>() {
             @Override
             public void onResponse(@NonNull Call<PigoResponse> call, @NonNull Response<PigoResponse> response) {
-                Toast.makeText(getApplicationContext(),response.body().getStatus(),Toast.LENGTH_LONG).show();
+                String demo = new Gson().toJson(response.body());
+                Toast.makeText(getApplicationContext(),demo,Toast.LENGTH_LONG).show();
             }
 
             @Override
@@ -145,8 +146,10 @@ public class MainActivity extends AppCompatActivity {
                     Uri mImageUri=data.getData();
                     String imagePath = getPath(getApplicationContext(), mImageUri);
                     mArrayUri.clear();
+                    parts.clear();
                     imagesEncodedList.clear();
                     mArrayUri.add(mImageUri);
+                    parts.add(prepareFilePart("image",mImageUri));
                     tvNumImages.setText(mArrayUri.size() + " image selected");
                     imagesEncodedList.add(imagePath);
                     Toast.makeText(this, "1 image selected", Toast.LENGTH_SHORT).show();
@@ -155,12 +158,14 @@ public class MainActivity extends AppCompatActivity {
                     if (data.getClipData() != null) {
                         ClipData mClipData = data.getClipData();
                         mArrayUri.clear();
+                        parts.clear();
                         imagesEncodedList.clear();
                         for (int i = 0; i < mClipData.getItemCount(); i++) {
                             ClipData.Item item = mClipData.getItemAt(i);
                             Uri uri = item.getUri();
                             mArrayUri.add(uri);
                             imagesEncodedList.add(getPath(getApplicationContext(), uri));
+                            parts.add(prepareFilePart("image",uri));
                         }
                         tvNumImages.setText(mArrayUri.size() + " images selected");
                         //Log.v("LOG_TAG", "Selected Images: " + imagesEncodedList);
@@ -243,6 +248,23 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return null;
+    }
+
+    @NonNull
+    private MultipartBody.Part prepareFilePart(String partName, Uri fileUri) {
+        // https://github.com/iPaulPro/aFileChooser/blob/master/aFileChooser/src/com/ipaulpro/afilechooser/utils/FileUtils.java
+        // use the FileUtils to get the actual file by uri
+        File file = FileUtils.getFile(this, fileUri);
+
+        // create RequestBody instance from file
+        RequestBody requestFile =
+                RequestBody.create(
+                        MediaType.parse(getContentResolver().getType(fileUri)),
+                        file
+                );
+
+        // MultipartBody.Part is used to send also the actual file name
+        return MultipartBody.Part.createFormData(partName, file.getName(), requestFile);
     }
 
     public static String getDataColumn(Context context, Uri uri, String selection,
