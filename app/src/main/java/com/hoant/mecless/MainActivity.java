@@ -15,6 +15,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
+import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
@@ -26,6 +27,7 @@ import android.widget.Toast;
 import com.google.gson.Gson;
 
 import org.jetbrains.annotations.NotNull;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -50,13 +52,13 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 import retrofit2.converter.scalars.ScalarsConverterFactory;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements Result.OnFragmentInteractionListener {
 
     public static final String EXTRA_MESSAGE = "";
     private EditText txtUrl;
     private GridView gvGallery;
     private GalleryAdapter galleryAdapter;
-    private TextView tvNumImages;
+    private TextView tvNumImages, tvResult;
     static final int PICK_IMAGE_MULTIPLE = 1;
     private ArrayList<Uri> mArrayUri = new ArrayList<Uri>();
     private List<String> imagesEncodedList = new ArrayList<String>();
@@ -70,11 +72,14 @@ public class MainActivity extends AppCompatActivity {
         txtUrl = findViewById(R.id.txtUrl);
         gvGallery = findViewById(R.id.gvGallery);
         tvNumImages = findViewById(R.id.tvNumImages);
-        txtUrl.setText("http://10.0.2.2:8080/function/",TextView.BufferType.EDITABLE);
+        tvResult = findViewById(R.id.tvResult);
+        tvResult.setMovementMethod(new ScrollingMovementMethod());
+        txtUrl.setText("http://192.168.1.9:31112/function/",TextView.BufferType.EDITABLE);
     }
 
     // Connect to server
     public void connectServer(View view) {
+        tvResult.setText("Processing, please wait...");
         // Create Retrofit instance
         BASE_URL = txtUrl.getText().toString();
         OkHttpClient.Builder okHttpClient = new OkHttpClient.Builder();
@@ -111,8 +116,30 @@ public class MainActivity extends AppCompatActivity {
         call.enqueue(new Callback<PigoResponse>() {
             @Override
             public void onResponse(@NonNull Call<PigoResponse> call, @NonNull Response<PigoResponse> response) {
-                String demo = new Gson().toJson(response.body());
-                Toast.makeText(getApplicationContext(),demo,Toast.LENGTH_LONG).show();
+                JSONArray jsonArray = null;
+                String res = "";
+                try {
+                    jsonArray = new JSONArray(new Gson().toJson(response.body().getData()));
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+//                Toast.makeText(getApplicationContext(),jsonArray.toString(),Toast.LENGTH_LONG).show();
+                for(int i=0; i< jsonArray.length(); i++) {
+                    try {
+                        JSONObject row = jsonArray.getJSONObject(i);
+                        res += "__________________________";
+                        res += "\n Image " + (i+1) + " (" + row.getString("ImageName") +")";
+                        res += "\n Number of faces: " + row.getJSONArray("Faces").length();
+                        res += "\n Detection time: " + row.getString("Time");
+                        res += "\n Face positions: " + row.getJSONArray("Faces").toString() + "\n";
+                        //Toast.makeText(getApplicationContext(),row.toString(),Toast.LENGTH_LONG).show();
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                }
+                //Toast.makeText(getApplicationContext(),res,Toast.LENGTH_LONG).show();
+                tvResult.setText("Result: \n" + res);
+                //getSupportFragmentManager().beginTransaction().replace(R.id.main_activity,result).addToBackStack(null).commit();
             }
 
             @Override
@@ -140,6 +167,7 @@ public class MainActivity extends AppCompatActivity {
             // When an Image is picked
             if (requestCode == PICK_IMAGE_MULTIPLE && resultCode == Activity.RESULT_OK
                     && null != data) {
+                tvResult.setText("Click Connect to start offloading");
                 // Get the Image from data
                 if(data.getData()!=null){
                     // 1 Image
@@ -302,4 +330,8 @@ public class MainActivity extends AppCompatActivity {
         return "com.android.providers.media.documents".equals(uri.getAuthority());
     }
 
+    @Override
+    public void onFragmentInteraction(Uri uri) {
+
+    }
 }
